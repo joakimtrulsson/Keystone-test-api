@@ -46,8 +46,9 @@ var permissions = {
 };
 var rules = {
   canReadItems: ({ session }) => {
+    console.log("rules");
     if (!session)
-      return false;
+      return true;
     if (session.data.role?.canManageAllItems) {
       return true;
     }
@@ -79,26 +80,11 @@ var rules = {
 // schema.ts
 var lists = {
   Event: (0, import_core.list)({
-    /*
-      SPEC
-      - [x] Block all public access
-      - [x] Restrict list create based on canCreateItems
-      - [x] Restrict list read based on canManageAllItems and isPrivate
-        - [x] Users without canManageAllItems can only see their own Event items
-        - [x] Users can never see Event items with isPrivate unless assigned to themselves
-      - [x] Restrict list update / delete based on canManageAllItems
-        - [x] Users can always update / delete their own Event items
-        - [x] Users can only update / delete Event items assigned to other Users with canManageAllItems
-      - [ ] Validate assignment on create based on canManageAllItems
-        - [ ] Users without canManageAllItems can only create Items assigned to themselves
-        - [ ] Users with canManageAllItems can create and assign Items to anyone
-        - [ ] Nobody can create private users assigned to another user
-      - [ ] Extend the Admin UI to stop Users creating private Items assigned to someone else
-    */
     access: {
       operation: {
         ...(0, import_access.allOperations)(isSignedIn),
-        create: permissions.canCreateItems
+        create: permissions.canCreateItems,
+        query: () => true
       },
       filter: {
         query: rules.canReadItems,
@@ -135,11 +121,60 @@ var lists = {
           }
         },
         hooks: {
-          beforeOperation: (params) => {
-            if (params.operation.type === "query") {
-              return true;
+          resolveInput({ operation, resolvedData, context }) {
+            if (operation === "create" && !resolvedData.author && context.session) {
+              return { connect: { id: context.session.itemId } };
             }
+            return resolvedData.author;
+          }
+        }
+      })
+    }
+  }),
+  Post: (0, import_core.list)({
+    access: {
+      operation: {
+        ...(0, import_access.allOperations)(isSignedIn),
+        create: permissions.canCreateItems,
+        query: () => true
+      },
+      filter: {
+        query: rules.canReadItems,
+        update: rules.canManageItems,
+        delete: rules.canManageItems
+      }
+    },
+    ui: {
+      hideCreate: (args) => !permissions.canCreateItems(args),
+      listView: {
+        initialColumns: ["title", "author"]
+      }
+    },
+    fields: {
+      title: (0, import_fields.text)({ validation: { isRequired: true } }),
+      content: (0, import_fields_document.document)({
+        formatting: true,
+        dividers: true,
+        links: true,
+        layouts: [
+          [1, 1],
+          [1, 1, 1]
+        ]
+      }),
+      publishedAt: (0, import_fields.timestamp)({
+        defaultValue: { kind: "now" }
+      }),
+      author: (0, import_fields.relationship)({
+        ref: "User.posts",
+        ui: {
+          createView: {
+            fieldMode: (args) => permissions.canManageAllItems(args) ? "edit" : "hidden"
           },
+          itemView: {
+            fieldMode: (args) => permissions.canManageAllItems(args) ? "edit" : "read"
+          }
+        },
+        hooks: {
           resolveInput({ operation, resolvedData, context }) {
             if (operation === "create" && !resolvedData.author && context.session) {
               return { connect: { id: context.session.itemId } };
@@ -151,17 +186,6 @@ var lists = {
     }
   }),
   User: (0, import_core.list)({
-    /*
-      SPEC
-      - [x] Block all public access
-      - [x] Restrict list create based on canManageUsers
-      - [x] Restrict list read based on canSeeOtherUsers
-      - [x] Restrict list update based on canEditOtherUsers
-      - [x] Restrict list delete based on canManageUsers
-      - [x] Restrict role field update based on canManageUsers
-      - [x] Restrict password field update based on same item or canManageUsers
-      - [x] Restrict tasks based on same item or canManageItems
-    */
     access: {
       operation: {
         ...(0, import_access.allOperations)(isSignedIn),
@@ -177,7 +201,7 @@ var lists = {
       hideCreate: (args) => !permissions.canManageUsers(args),
       hideDelete: (args) => !permissions.canManageUsers(args),
       listView: {
-        initialColumns: ["name", "role", "events"]
+        initialColumns: ["name", "role", "events", "posts"]
       },
       itemView: {
         defaultFieldMode: ({ session, item }) => {
@@ -229,6 +253,26 @@ var lists = {
       /* Event items assigned to the user */
       events: (0, import_fields.relationship)({
         ref: "Event.author",
+        many: true,
+        access: {
+          // only Users with canManageAllItems can set this field when creating other users
+          create: permissions.canManageAllItems,
+          // you can only update this field with canManageAllItems, or for yourself
+          update: ({ session, item }) => permissions.canManageAllItems({ session }) || session?.itemId === item.id
+        },
+        ui: {
+          createView: {
+            // Note you can only see the create view if you can manage Users, so we just need to
+            // check the canManageAllItems permission here
+            fieldMode: (args) => permissions.canManageAllItems(args) ? "edit" : "hidden"
+          },
+          // Event lists can be potentially quite large, so it's impractical to edit this field in
+          // the item view. Always set it to read mode.
+          itemView: { fieldMode: "read" }
+        }
+      }),
+      posts: (0, import_fields.relationship)({
+        ref: "Post.author",
         many: true,
         access: {
           // only Users with canManageAllItems can set this field when creating other users
@@ -312,7 +356,41 @@ var lists = {
   })
 };
 
+// routes/getEvents.ts
+async function getEvents(req, res, context) {
+  console.log("getEvent");
+  const events = await context.query.Event.findMany({
+    // where: {
+    //   isComplete,
+    // },
+    query: `
+     id
+     title
+     content { document }
+    `
+  });
+  res.json(events);
+}
+
+// routes/getPosts.ts
+async function getPosts(req, res, context) {
+  console.log("getPosts");
+  const posts = await context.query.Post.findMany({
+    query: `
+     id
+     title
+     content { document }
+    `
+  });
+  res.json(posts);
+}
+
 // keystone.ts
+function withContext(commonContext, f) {
+  return async (req, res) => {
+    return f(req, res, await commonContext.withRequest(req, res));
+  };
+}
 var { withAuth } = (0, import_auth.createAuth)({
   // this is the list that contains our users
   listKey: "User",
@@ -364,10 +442,24 @@ var { withAuth } = (0, import_auth.createAuth)({
 });
 var keystone_default = withAuth(
   (0, import_core2.config)({
-    // server: { cors: { credentials: false } },
     db: {
       provider: "sqlite",
       url: process.env.DATABASE_URL || "file:./database.db"
+    },
+    server: {
+      /*
+        This is the main part of this example. Here we include a function that
+        takes the express app Keystone created, and does two things:
+        - Adds a middleware function that will run on requests matching our REST
+          API routes, to get a keystone context on `req`. This means we don't
+          need to put our route handlers in a closure and repeat it for each.
+        - Adds a GET handler for tasks, which will query for tasks in the
+          Keystone schema and return the results as JSON
+      */
+      extendExpressApp: (app, commonContext) => {
+        app.get("/api/events", withContext(commonContext, getEvents));
+        app.get("/api/posts", withContext(commonContext, getPosts));
+      }
     },
     lists,
     ui: {

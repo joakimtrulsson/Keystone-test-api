@@ -22,6 +22,17 @@ model Event {
   @@index([authorId])
 }
 
+model Post {
+  id          String    @id @default(cuid())
+  title       String    @default("")
+  content     String    @default("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]")
+  publishedAt DateTime? @default(now())
+  author      User?     @relation("Post_author", fields: [authorId], references: [id])
+  authorId    String?   @map("author")
+
+  @@index([authorId])
+}
+
 model User {
   id       String  @id @default(cuid())
   name     String  @unique @default("")
@@ -29,6 +40,7 @@ model User {
   role     Role?   @relation("User_role", fields: [roleId], references: [id])
   roleId   String? @map("role")
   events   Event[] @relation("Event_author")
+  posts    Post[]  @relation("Post_author")
 
   @@index([roleId])
 }

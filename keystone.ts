@@ -1,8 +1,22 @@
 import { config } from '@keystone-6/core';
 import { statelessSessions } from '@keystone-6/core/session';
 import { createAuth } from '@keystone-6/auth';
+import type { Request, Response } from 'express';
+import { TypeInfo, Context } from '.keystone/types';
 // import { fixPrismaPath } from '../example-utils';
 import { lists } from './schema';
+import { KeystoneContext } from '@keystone-6/core/types';
+import { getEvents } from './routes/getEvents';
+import { getPosts } from './routes/getPosts';
+
+function withContext<F extends (req: Request, res: Response, context: Context) => void>(
+  commonContext: Context,
+  f: F
+) {
+  return async (req: Request, res: Response) => {
+    return f(req, res, await commonContext.withRequest(req, res));
+  };
+}
 
 // WARNING: this example is for demonstration purposes only
 //   as with each of our examples, it has not been vetted
@@ -66,10 +80,24 @@ const { withAuth } = createAuth({
 
 export default withAuth(
   config({
-    // server: { cors: { credentials: false } },
     db: {
       provider: 'sqlite',
       url: process.env.DATABASE_URL || 'file:./database.db',
+    },
+    server: {
+      /*
+        This is the main part of this example. Here we include a function that
+        takes the express app Keystone created, and does two things:
+        - Adds a middleware function that will run on requests matching our REST
+          API routes, to get a keystone context on `req`. This means we don't
+          need to put our route handlers in a closure and repeat it for each.
+        - Adds a GET handler for tasks, which will query for tasks in the
+          Keystone schema and return the results as JSON
+      */
+      extendExpressApp: (app, commonContext) => {
+        app.get('/api/events', withContext(commonContext, getEvents));
+        app.get('/api/posts', withContext(commonContext, getPosts));
+      },
     },
     lists,
     ui: {

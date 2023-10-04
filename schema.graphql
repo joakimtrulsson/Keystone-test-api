@@ -120,6 +120,57 @@ input UserRelateToOneForCreateInput {
   connect: UserWhereUniqueInput
 }
 
+type Post {
+  id: ID!
+  title: String
+  content: Post_content_Document
+  publishedAt: DateTime
+  author: User
+}
+
+type Post_content_Document {
+  document(hydrateRelationships: Boolean! = false): JSON!
+}
+
+input PostWhereUniqueInput {
+  id: ID
+}
+
+input PostWhereInput {
+  AND: [PostWhereInput!]
+  OR: [PostWhereInput!]
+  NOT: [PostWhereInput!]
+  id: IDFilter
+  title: StringFilter
+  publishedAt: DateTimeNullableFilter
+  author: UserWhereInput
+}
+
+input PostOrderByInput {
+  id: OrderDirection
+  title: OrderDirection
+  publishedAt: OrderDirection
+}
+
+input PostUpdateInput {
+  title: String
+  content: JSON
+  publishedAt: DateTime
+  author: UserRelateToOneForUpdateInput
+}
+
+input PostUpdateArgs {
+  where: PostWhereUniqueInput!
+  data: PostUpdateInput!
+}
+
+input PostCreateInput {
+  title: String
+  content: JSON
+  publishedAt: DateTime
+  author: UserRelateToOneForCreateInput
+}
+
 type User {
   id: ID!
   name: String
@@ -127,6 +178,8 @@ type User {
   role: Role
   events(where: EventWhereInput! = {}, orderBy: [EventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventWhereUniqueInput): [Event!]
   eventsCount(where: EventWhereInput! = {}): Int
+  posts(where: PostWhereInput! = {}, orderBy: [PostOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PostWhereUniqueInput): [Post!]
+  postsCount(where: PostWhereInput! = {}): Int
 }
 
 type PasswordState {
@@ -144,12 +197,19 @@ input UserWhereInput {
   id: IDFilter
   role: RoleWhereInput
   events: EventManyRelationFilter
+  posts: PostManyRelationFilter
 }
 
 input EventManyRelationFilter {
   every: EventWhereInput
   some: EventWhereInput
   none: EventWhereInput
+}
+
+input PostManyRelationFilter {
+  every: PostWhereInput
+  some: PostWhereInput
+  none: PostWhereInput
 }
 
 input UserOrderByInput {
@@ -161,6 +221,7 @@ input UserUpdateInput {
   password: String
   role: RoleRelateToOneForUpdateInput
   events: EventRelateToManyForUpdateInput
+  posts: PostRelateToManyForUpdateInput
 }
 
 input RoleRelateToOneForUpdateInput {
@@ -176,6 +237,13 @@ input EventRelateToManyForUpdateInput {
   connect: [EventWhereUniqueInput!]
 }
 
+input PostRelateToManyForUpdateInput {
+  disconnect: [PostWhereUniqueInput!]
+  set: [PostWhereUniqueInput!]
+  create: [PostCreateInput!]
+  connect: [PostWhereUniqueInput!]
+}
+
 input UserUpdateArgs {
   where: UserWhereUniqueInput!
   data: UserUpdateInput!
@@ -186,6 +254,7 @@ input UserCreateInput {
   password: String
   role: RoleRelateToOneForCreateInput
   events: EventRelateToManyForCreateInput
+  posts: PostRelateToManyForCreateInput
 }
 
 input RoleRelateToOneForCreateInput {
@@ -196,6 +265,11 @@ input RoleRelateToOneForCreateInput {
 input EventRelateToManyForCreateInput {
   create: [EventCreateInput!]
   connect: [EventWhereUniqueInput!]
+}
+
+input PostRelateToManyForCreateInput {
+  create: [PostCreateInput!]
+  connect: [PostWhereUniqueInput!]
 }
 
 type Role {
@@ -308,6 +382,12 @@ type Mutation {
   updateEvents(data: [EventUpdateArgs!]!): [Event]
   deleteEvent(where: EventWhereUniqueInput!): Event
   deleteEvents(where: [EventWhereUniqueInput!]!): [Event]
+  createPost(data: PostCreateInput!): Post
+  createPosts(data: [PostCreateInput!]!): [Post]
+  updatePost(where: PostWhereUniqueInput!, data: PostUpdateInput!): Post
+  updatePosts(data: [PostUpdateArgs!]!): [Post]
+  deletePost(where: PostWhereUniqueInput!): Post
+  deletePosts(where: [PostWhereUniqueInput!]!): [Post]
   createUser(data: UserCreateInput!): User
   createUsers(data: [UserCreateInput!]!): [User]
   updateUser(where: UserWhereUniqueInput!, data: UserUpdateInput!): User
@@ -345,6 +425,9 @@ type Query {
   events(where: EventWhereInput! = {}, orderBy: [EventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventWhereUniqueInput): [Event!]
   event(where: EventWhereUniqueInput!): Event
   eventsCount(where: EventWhereInput! = {}): Int
+  posts(where: PostWhereInput! = {}, orderBy: [PostOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PostWhereUniqueInput): [Post!]
+  post(where: PostWhereUniqueInput!): Post
+  postsCount(where: PostWhereInput! = {}): Int
   users(where: UserWhereInput! = {}, orderBy: [UserOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: UserWhereUniqueInput): [User!]
   user(where: UserWhereUniqueInput!): User
   usersCount(where: UserWhereInput! = {}): Int

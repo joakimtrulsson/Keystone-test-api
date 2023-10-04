@@ -44,15 +44,16 @@ export const permissions = {
 */
 export const rules = {
   canReadItems: ({ session }: AccessArgs) => {
-    if (!session) return false;
+    console.log('rules');
+    if (!session) return true;
 
     if (session.data.role?.canManageAllItems) {
-      // can see all Items that are: assigned to them, or not private
       return true;
     }
 
     // default to only seeing your own Items
     return { author: { id: { equals: session.itemId } } };
+    // return true;
   },
   canManageItems: ({ session }: AccessArgs) => {
     if (!session) return false;
