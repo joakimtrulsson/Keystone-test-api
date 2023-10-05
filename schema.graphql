@@ -4,6 +4,8 @@
 type Event {
   id: ID!
   title: String
+  chapter(where: ChapterWhereInput! = {}, orderBy: [ChapterOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ChapterWhereUniqueInput): [Chapter!]
+  chapterCount(where: ChapterWhereInput! = {}): Int
   content: Event_content_Document
   eventStartDate: DateTime
   author: User
@@ -25,6 +27,7 @@ input EventWhereInput {
   NOT: [EventWhereInput!]
   id: IDFilter
   title: StringFilter
+  chapter: ChapterManyRelationFilter
   eventStartDate: DateTimeNullableFilter
   author: UserWhereInput
 }
@@ -68,6 +71,12 @@ input NestedStringFilter {
   not: NestedStringFilter
 }
 
+input ChapterManyRelationFilter {
+  every: ChapterWhereInput
+  some: ChapterWhereInput
+  none: ChapterWhereInput
+}
+
 input DateTimeNullableFilter {
   equals: DateTime
   in: [DateTime!]
@@ -92,9 +101,17 @@ enum OrderDirection {
 
 input EventUpdateInput {
   title: String
+  chapter: ChapterRelateToManyForUpdateInput
   content: JSON
   eventStartDate: DateTime
   author: UserRelateToOneForUpdateInput
+}
+
+input ChapterRelateToManyForUpdateInput {
+  disconnect: [ChapterWhereUniqueInput!]
+  set: [ChapterWhereUniqueInput!]
+  create: [ChapterCreateInput!]
+  connect: [ChapterWhereUniqueInput!]
 }
 
 input UserRelateToOneForUpdateInput {
@@ -110,14 +127,87 @@ input EventUpdateArgs {
 
 input EventCreateInput {
   title: String
+  chapter: ChapterRelateToManyForCreateInput
   content: JSON
   eventStartDate: DateTime
   author: UserRelateToOneForCreateInput
 }
 
+input ChapterRelateToManyForCreateInput {
+  create: [ChapterCreateInput!]
+  connect: [ChapterWhereUniqueInput!]
+}
+
 input UserRelateToOneForCreateInput {
   create: UserCreateInput
   connect: UserWhereUniqueInput
+}
+
+type Chapter {
+  id: ID!
+  title: String
+  desc: String
+  events(where: EventWhereInput! = {}, orderBy: [EventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventWhereUniqueInput): [Event!]
+  eventsCount(where: EventWhereInput! = {}): Int
+  author: User
+}
+
+input ChapterWhereUniqueInput {
+  id: ID
+}
+
+input ChapterWhereInput {
+  AND: [ChapterWhereInput!]
+  OR: [ChapterWhereInput!]
+  NOT: [ChapterWhereInput!]
+  id: IDFilter
+  title: StringFilter
+  desc: StringFilter
+  events: EventManyRelationFilter
+  author: UserWhereInput
+}
+
+input EventManyRelationFilter {
+  every: EventWhereInput
+  some: EventWhereInput
+  none: EventWhereInput
+}
+
+input ChapterOrderByInput {
+  id: OrderDirection
+  title: OrderDirection
+  desc: OrderDirection
+}
+
+input ChapterUpdateInput {
+  title: String
+  desc: String
+  events: EventRelateToManyForUpdateInput
+  author: UserRelateToOneForUpdateInput
+}
+
+input EventRelateToManyForUpdateInput {
+  disconnect: [EventWhereUniqueInput!]
+  set: [EventWhereUniqueInput!]
+  create: [EventCreateInput!]
+  connect: [EventWhereUniqueInput!]
+}
+
+input ChapterUpdateArgs {
+  where: ChapterWhereUniqueInput!
+  data: ChapterUpdateInput!
+}
+
+input ChapterCreateInput {
+  title: String
+  desc: String
+  events: EventRelateToManyForCreateInput
+  author: UserRelateToOneForCreateInput
+}
+
+input EventRelateToManyForCreateInput {
+  create: [EventCreateInput!]
+  connect: [EventWhereUniqueInput!]
 }
 
 type Post {
@@ -180,6 +270,8 @@ type User {
   eventsCount(where: EventWhereInput! = {}): Int
   posts(where: PostWhereInput! = {}, orderBy: [PostOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PostWhereUniqueInput): [Post!]
   postsCount(where: PostWhereInput! = {}): Int
+  chapters(where: ChapterWhereInput! = {}, orderBy: [ChapterOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ChapterWhereUniqueInput): [Chapter!]
+  chaptersCount(where: ChapterWhereInput! = {}): Int
 }
 
 type PasswordState {
@@ -198,12 +290,7 @@ input UserWhereInput {
   role: RoleWhereInput
   events: EventManyRelationFilter
   posts: PostManyRelationFilter
-}
-
-input EventManyRelationFilter {
-  every: EventWhereInput
-  some: EventWhereInput
-  none: EventWhereInput
+  chapters: ChapterManyRelationFilter
 }
 
 input PostManyRelationFilter {
@@ -222,19 +309,13 @@ input UserUpdateInput {
   role: RoleRelateToOneForUpdateInput
   events: EventRelateToManyForUpdateInput
   posts: PostRelateToManyForUpdateInput
+  chapters: ChapterRelateToManyForUpdateInput
 }
 
 input RoleRelateToOneForUpdateInput {
   create: RoleCreateInput
   connect: RoleWhereUniqueInput
   disconnect: Boolean
-}
-
-input EventRelateToManyForUpdateInput {
-  disconnect: [EventWhereUniqueInput!]
-  set: [EventWhereUniqueInput!]
-  create: [EventCreateInput!]
-  connect: [EventWhereUniqueInput!]
 }
 
 input PostRelateToManyForUpdateInput {
@@ -255,16 +336,12 @@ input UserCreateInput {
   role: RoleRelateToOneForCreateInput
   events: EventRelateToManyForCreateInput
   posts: PostRelateToManyForCreateInput
+  chapters: ChapterRelateToManyForCreateInput
 }
 
 input RoleRelateToOneForCreateInput {
   create: RoleCreateInput
   connect: RoleWhereUniqueInput
-}
-
-input EventRelateToManyForCreateInput {
-  create: [EventCreateInput!]
-  connect: [EventWhereUniqueInput!]
 }
 
 input PostRelateToManyForCreateInput {
@@ -382,6 +459,12 @@ type Mutation {
   updateEvents(data: [EventUpdateArgs!]!): [Event]
   deleteEvent(where: EventWhereUniqueInput!): Event
   deleteEvents(where: [EventWhereUniqueInput!]!): [Event]
+  createChapter(data: ChapterCreateInput!): Chapter
+  createChapters(data: [ChapterCreateInput!]!): [Chapter]
+  updateChapter(where: ChapterWhereUniqueInput!, data: ChapterUpdateInput!): Chapter
+  updateChapters(data: [ChapterUpdateArgs!]!): [Chapter]
+  deleteChapter(where: ChapterWhereUniqueInput!): Chapter
+  deleteChapters(where: [ChapterWhereUniqueInput!]!): [Chapter]
   createPost(data: PostCreateInput!): Post
   createPosts(data: [PostCreateInput!]!): [Post]
   updatePost(where: PostWhereUniqueInput!, data: PostUpdateInput!): Post
@@ -425,6 +508,9 @@ type Query {
   events(where: EventWhereInput! = {}, orderBy: [EventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventWhereUniqueInput): [Event!]
   event(where: EventWhereUniqueInput!): Event
   eventsCount(where: EventWhereInput! = {}): Int
+  chapters(where: ChapterWhereInput! = {}, orderBy: [ChapterOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ChapterWhereUniqueInput): [Chapter!]
+  chapter(where: ChapterWhereUniqueInput!): Chapter
+  chaptersCount(where: ChapterWhereInput! = {}): Int
   posts(where: PostWhereInput! = {}, orderBy: [PostOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PostWhereUniqueInput): [Post!]
   post(where: PostWhereUniqueInput!): Post
   postsCount(where: PostWhereInput! = {}): Int

@@ -95,11 +95,17 @@ var lists = {
     ui: {
       hideCreate: (args) => !permissions.canCreateItems(args),
       listView: {
-        initialColumns: ["title", "author"]
+        initialColumns: ["title", "chapter", "author"]
       }
     },
     fields: {
       title: (0, import_fields.text)({ validation: { isRequired: true } }),
+      chapter: (0, import_fields.relationship)({
+        ref: "Chapter.events",
+        // Detta bör peka på namnet på ditt relationsfält i Chapter-listan
+        many: true
+        // Ändra till true om ett Event kan tillhöra flera Chapters
+      }),
       content: (0, import_fields_document.document)({
         formatting: true,
         dividers: true,
@@ -112,6 +118,68 @@ var lists = {
       eventStartDate: (0, import_fields.timestamp)(),
       author: (0, import_fields.relationship)({
         ref: "User.events",
+        ui: {
+          createView: {
+            fieldMode: (args) => permissions.canManageAllItems(args) ? "edit" : "hidden"
+          },
+          itemView: {
+            fieldMode: (args) => permissions.canManageAllItems(args) ? "edit" : "read"
+          }
+        },
+        hooks: {
+          resolveInput({ operation, resolvedData, context }) {
+            if (operation === "create" && !resolvedData.author && context.session) {
+              return { connect: { id: context.session.itemId } };
+            }
+            return resolvedData.author;
+          }
+        }
+      })
+    }
+  }),
+  Chapter: (0, import_core.list)({
+    access: {
+      operation: {
+        ...(0, import_access.allOperations)(isSignedIn),
+        create: permissions.canCreateItems,
+        query: () => true
+      },
+      filter: {
+        query: rules.canReadItems,
+        update: rules.canManageItems,
+        delete: rules.canManageItems
+      }
+    },
+    ui: {
+      hideCreate: (args) => !permissions.canCreateItems(args),
+      listView: {
+        initialColumns: ["title", "author"]
+      }
+    },
+    fields: {
+      title: (0, import_fields.text)({ validation: { isRequired: true } }),
+      desc: (0, import_fields.text)({ validation: { isRequired: true } }),
+      events: (0, import_fields.relationship)({
+        ref: "Event.chapter",
+        // Detta bör peka på namnet på ditt relationsfält i Event-listan
+        many: true,
+        // Ändra till true om flera Events kan kopplas till ett Chapter
+        ui: {
+          createView: {
+            fieldMode: (args) => permissions.canManageAllItems(args) ? "edit" : "hidden"
+          },
+          itemView: {
+            fieldMode: (args) => permissions.canManageAllItems(args) ? "edit" : "read"
+          }
+        },
+        hooks: {
+          resolveInput({ operation, resolvedData, context }) {
+            return resolvedData.chapter;
+          }
+        }
+      }),
+      author: (0, import_fields.relationship)({
+        ref: "User.chapters",
         ui: {
           createView: {
             fieldMode: (args) => permissions.canManageAllItems(args) ? "edit" : "hidden"
@@ -201,7 +269,7 @@ var lists = {
       hideCreate: (args) => !permissions.canManageUsers(args),
       hideDelete: (args) => !permissions.canManageUsers(args),
       listView: {
-        initialColumns: ["name", "role", "events", "posts"]
+        initialColumns: ["name", "role"]
       },
       itemView: {
         defaultFieldMode: ({ session, item }) => {
@@ -290,20 +358,30 @@ var lists = {
           // the item view. Always set it to read mode.
           itemView: { fieldMode: "read" }
         }
+      }),
+      chapters: (0, import_fields.relationship)({
+        ref: "Chapter.author",
+        many: true,
+        access: {
+          // only Users with canManageAllItems can set this field when creating other users
+          create: permissions.canManageAllItems,
+          // you can only update this field with canManageAllItems, or for yourself
+          update: ({ session, item }) => permissions.canManageAllItems({ session }) || session?.itemId === item.id
+        },
+        ui: {
+          createView: {
+            // Note you can only see the create view if you can manage Users, so we just need to
+            // check the canManageAllItems permission here
+            fieldMode: (args) => permissions.canManageAllItems(args) ? "edit" : "hidden"
+          },
+          // Event lists can be potentially quite large, so it's impractical to edit this field in
+          // the item view. Always set it to read mode.
+          itemView: { fieldMode: "read" }
+        }
       })
     }
   }),
   Role: (0, import_core.list)({
-    /*
-      SPEC
-      - [x] Block all public access
-      - [x] Restrict edit access based on canManageRoles
-      - [ ] Prevent users from deleting their own role
-      - [ ] Add a pre-save hook that ensures some permissions are selected when others are:
-          - [ ] when canEditOtherUsers is true, canSeeOtherUsers must be true
-          - [ ] when canManageUsers is true, canEditOtherUsers and canSeeOtherUsers must be true
-      - [ ] Extend the Admin UI with client-side validation based on the same set of rules
-    */
     access: {
       operation: {
         ...(0, import_access.allOperations)(permissions.canManageRoles),

@@ -14,10 +14,22 @@ generator client {
 model Event {
   id             String    @id @default(cuid())
   title          String    @default("")
+  chapter        Chapter[] @relation("Chapter_events")
   content        String    @default("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]")
   eventStartDate DateTime?
   author         User?     @relation("Event_author", fields: [authorId], references: [id])
   authorId       String?   @map("author")
+
+  @@index([authorId])
+}
+
+model Chapter {
+  id       String  @id @default(cuid())
+  title    String  @default("")
+  desc     String  @default("")
+  events   Event[] @relation("Chapter_events")
+  author   User?   @relation("Chapter_author", fields: [authorId], references: [id])
+  authorId String? @map("author")
 
   @@index([authorId])
 }
@@ -34,13 +46,14 @@ model Post {
 }
 
 model User {
-  id       String  @id @default(cuid())
-  name     String  @unique @default("")
+  id       String    @id @default(cuid())
+  name     String    @unique @default("")
   password String
-  role     Role?   @relation("User_role", fields: [roleId], references: [id])
-  roleId   String? @map("role")
-  events   Event[] @relation("Event_author")
-  posts    Post[]  @relation("Post_author")
+  role     Role?     @relation("User_role", fields: [roleId], references: [id])
+  roleId   String?   @map("role")
+  events   Event[]   @relation("Event_author")
+  posts    Post[]    @relation("Post_author")
+  chapters Chapter[] @relation("Chapter_author")
 
   @@index([roleId])
 }
