@@ -12,13 +12,18 @@ generator client {
 }
 
 model Event {
-  id             String    @id @default(cuid())
-  title          String    @default("")
-  chapter        Chapter[] @relation("Chapter_events")
-  content        String    @default("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]")
-  eventStartDate DateTime?
-  author         User?     @relation("Event_author", fields: [authorId], references: [id])
-  authorId       String?   @map("author")
+  id                 String    @id @default(cuid())
+  title              String    @default("")
+  chapter            Chapter[] @relation("Chapter_events")
+  content            String    @default("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]")
+  eventImg_filesize  Int?
+  eventImg_extension String?
+  eventImg_width     Int?
+  eventImg_height    Int?
+  eventImg_id        String?
+  eventStartDate     DateTime?
+  author             User?     @relation("Event_author", fields: [authorId], references: [id])
+  authorId           String?   @map("author")
 
   @@index([authorId])
 }
@@ -68,5 +73,6 @@ model Role {
   canManageUsers    Boolean @default(false)
   canManageRoles    Boolean @default(false)
   canUseAdminUI     Boolean @default(false)
+  canReadChapters   Boolean @default(false)
   author            User[]  @relation("User_role")
 }

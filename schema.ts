@@ -1,6 +1,6 @@
 import { list } from '@keystone-6/core';
 import { allOperations, denyAll } from '@keystone-6/core/access';
-import { checkbox, password, relationship, text, timestamp } from '@keystone-6/core/fields';
+import { checkbox, password, relationship, text, timestamp, image } from '@keystone-6/core/fields';
 import { document } from '@keystone-6/fields-document';
 
 import { isSignedIn, permissions, rules } from './access';
@@ -30,8 +30,8 @@ export const lists: Lists<Session> = {
     fields: {
       title: text({ validation: { isRequired: true } }),
       chapter: relationship({
-        ref: 'Chapter.events', // Detta bör peka på namnet på ditt relationsfält i Chapter-listan
-        many: true, // Ändra till true om ett Event kan tillhöra flera Chapters
+        ref: 'Chapter.events',
+        many: true,
       }),
       content: document({
         formatting: true,
@@ -42,6 +42,7 @@ export const lists: Lists<Session> = {
           [1, 1, 1],
         ],
       }),
+      eventImg: image({ storage: 'eventImages' }),
       eventStartDate: timestamp(),
       author: relationship({
         ref: 'User.events',
@@ -56,8 +57,7 @@ export const lists: Lists<Session> = {
         hooks: {
           resolveInput({ operation, resolvedData, context }) {
             if (operation === 'create' && !resolvedData.author && context.session) {
-              // Always default new Event items to the current user; this is important because users
-              // without canManageAllItems don't see this field when creating new items
+              // Nytt item länkas till användaren, detta är viktigt eftersom utan canManageAllItems syns inte det här fältet.
               return { connect: { id: context.session.itemId } };
             }
             return resolvedData.author;
@@ -74,7 +74,8 @@ export const lists: Lists<Session> = {
         query: () => true,
       },
       filter: {
-        query: rules.canReadItems,
+        query: () => true,
+        // query: rules.canReadItems,
         update: rules.canManageItems,
         delete: rules.canManageItems,
       },
@@ -84,13 +85,34 @@ export const lists: Lists<Session> = {
       listView: {
         initialColumns: ['title', 'author'],
       },
+      // itemView: {
+      //   defaultFieldMode: ({ session, item }) => {
+      //     console.log('session användare', session.itemId);
+      //     console.log('item', item.authorId);
+      //     // canMananageAllItems can edit other Chapters
+      //     if (session?.data.role?.canManageAllItems) {
+      //       console.log('här');
+      //       return 'edit';
+      //     }
+
+      //     // edit themselves
+
+      //     // if (session?.itemId === item.authorId) {
+      //     //   console.log('där');
+      //     //   return 'edit';
+      //     // }
+
+      //     // else, default all fields to read mode
+      //     return 'read';
+      //   },
+      // },
     },
     fields: {
       title: text({ validation: { isRequired: true } }),
       desc: text({ validation: { isRequired: true } }),
       events: relationship({
-        ref: 'Event.chapter', // Detta bör peka på namnet på ditt relationsfält i Event-listan
-        many: true, // Ändra till true om flera Events kan kopplas till ett Chapter
+        ref: 'Event.chapter',
+        many: true,
         ui: {
           createView: {
             fieldMode: (args) => (permissions.canManageAllItems(args) ? 'edit' : 'hidden'),
@@ -101,7 +123,6 @@ export const lists: Lists<Session> = {
         },
         hooks: {
           resolveInput({ operation, resolvedData, context }) {
-            // Här kan du lägga till logik för att ansluta ditt Chapter till Event om det är nödvändigt
             return resolvedData.chapter;
           },
         },
@@ -120,8 +141,8 @@ export const lists: Lists<Session> = {
         hooks: {
           resolveInput({ operation, resolvedData, context }) {
             if (operation === 'create' && !resolvedData.author && context.session) {
-              // Always default new Event items to the current user; this is important because users
-              // without canManageAllItems don't see this field when creating new items
+              // Nytt item länkas till användaren, detta är viktigt eftersom utan canManageAllItems syns inte det här fältet.
+
               return { connect: { id: context.session.itemId } };
             }
             return resolvedData.author;
@@ -176,8 +197,7 @@ export const lists: Lists<Session> = {
         hooks: {
           resolveInput({ operation, resolvedData, context }) {
             if (operation === 'create' && !resolvedData.author && context.session) {
-              // Always default new Event items to the current user; this is important because users
-              // without canManageAllItems don't see this field when creating new items
+              // Nytt item länkas till användaren, detta är viktigt eftersom utan canManageAllItems syns inte det här fältet.
               return { connect: { id: context.session.itemId } };
             }
             return resolvedData.author;
@@ -206,23 +226,18 @@ export const lists: Lists<Session> = {
       },
       itemView: {
         defaultFieldMode: ({ session, item }) => {
-          // canEditOtherUsers can edit other Users
+          // canEditOtherUsers kan redigera andra användare
           if (session?.data.role?.canEditOtherUsers) return 'edit';
 
-          // edit themselves
+          // Redigera sin egna användare
           if (session?.itemId === item.id) return 'edit';
-
-          // else, default all fields to read mode
+          // Annars read mode
           return 'read';
         },
       },
     },
     fields: {
-      // the user's name, used as the identity field for authentication
-      //   should not be publicly visible
-      //
-      //   we use isIndexed to enforce names are unique
-      //     that may not suitable for your application
+      //   isIndexed ser till att namnet är unikt
       name: text({
         isFilterable: false,
         isOrderable: false,
@@ -231,8 +246,6 @@ export const lists: Lists<Session> = {
           isRequired: true,
         },
       }),
-      // the user's password, used as the secret field for authentication
-      //   should not be publicly visible
       password: password({
         access: {
           read: denyAll, // Event: is this required?
@@ -241,7 +254,8 @@ export const lists: Lists<Session> = {
         },
         validation: { isRequired: true },
       }),
-      /* The role assigned to the user */
+
+      //  Rolen som är kopplad till användare.
       role: relationship({
         ref: 'Role.author',
         access: {
@@ -254,26 +268,23 @@ export const lists: Lists<Session> = {
           },
         },
       }),
-      /* Event items assigned to the user */
+
+      //  item som är kopplad till användare.
       events: relationship({
         ref: 'Event.author',
         many: true,
         access: {
-          // only Users with canManageAllItems can set this field when creating other users
+          // Endast med canManagaAllItems kan använda det här fältet åt andra användare.
           create: permissions.canManageAllItems,
-
-          // you can only update this field with canManageAllItems, or for yourself
+          // Du kan endast uppdatera det här fältet med canMangageAllItems eller för dig själv.
           update: ({ session, item }) =>
             permissions.canManageAllItems({ session }) || session?.itemId === item.id,
         },
         ui: {
           createView: {
-            // Note you can only see the create view if you can manage Users, so we just need to
-            // check the canManageAllItems permission here
+            // Du kan endast se edit view om du har canManageAllItems
             fieldMode: (args) => (permissions.canManageAllItems(args) ? 'edit' : 'hidden'),
           },
-          // Event lists can be potentially quite large, so it's impractical to edit this field in
-          // the item view. Always set it to read mode.
           itemView: { fieldMode: 'read' },
         },
       }),
@@ -282,21 +293,19 @@ export const lists: Lists<Session> = {
         ref: 'Post.author',
         many: true,
         access: {
-          // only Users with canManageAllItems can set this field when creating other users
+          // Du kan bara använda det här fältet om du har canMangaAllItems när du skapar en användare.
           create: permissions.canManageAllItems,
 
-          // you can only update this field with canManageAllItems, or for yourself
+          // Du kan bara uppdatera det här fältet med canManageAllItems eller din egna användare.
           update: ({ session, item }) =>
             permissions.canManageAllItems({ session }) || session?.itemId === item.id,
         },
         ui: {
           createView: {
-            // Note you can only see the create view if you can manage Users, so we just need to
-            // check the canManageAllItems permission here
+            // Du kan bara se createview om du har canManageAllItems
             fieldMode: (args) => (permissions.canManageAllItems(args) ? 'edit' : 'hidden'),
           },
-          // Event lists can be potentially quite large, so it's impractical to edit this field in
-          // the item view. Always set it to read mode.
+
           itemView: { fieldMode: 'read' },
         },
       }),
@@ -304,21 +313,14 @@ export const lists: Lists<Session> = {
         ref: 'Chapter.author',
         many: true,
         access: {
-          // only Users with canManageAllItems can set this field when creating other users
           create: permissions.canManageAllItems,
-
-          // you can only update this field with canManageAllItems, or for yourself
           update: ({ session, item }) =>
             permissions.canManageAllItems({ session }) || session?.itemId === item.id,
         },
         ui: {
           createView: {
-            // Note you can only see the create view if you can manage Users, so we just need to
-            // check the canManageAllItems permission here
             fieldMode: (args) => (permissions.canManageAllItems(args) ? 'edit' : 'hidden'),
           },
-          // Event lists can be potentially quite large, so it's impractical to edit this field in
-          // the item view. Always set it to read mode.
           itemView: { fieldMode: 'read' },
         },
       }),
@@ -344,29 +346,21 @@ export const lists: Lists<Session> = {
     fields: {
       name: text({ validation: { isRequired: true } }),
 
-      /* Create Items means:
-         - create Items (can only assign them to others with canManageAllItems) */
       canCreateItems: checkbox({ defaultValue: false }),
-      /* Manage All Items means:
-         - create new Event items and assign them to someone else (with canCreateItems)
-         - update and delete Event items not assigned to the current user */
+
       canManageAllItems: checkbox({ defaultValue: false }),
-      /* See Other Users means:
-         - list all users in the database (users can always see themselves) */
+
       canSeeOtherUsers: checkbox({ defaultValue: false }),
-      /* Edit Other Users means:
-         - edit other users in the database (users can always edit their own item) */
+
       canEditOtherUsers: checkbox({ defaultValue: false }),
-      /* Manage Users means:
-         - change passwords (users can always change their own password)
-         - assign roles to themselves and other users */
+
       canManageUsers: checkbox({ defaultValue: false }),
-      /* Manage Roles means:
-         - create, edit, and delete roles */
+
       canManageRoles: checkbox({ defaultValue: false }),
-      /* Use AdminUI means:
-         - can access the Admin UI next app */
+
       canUseAdminUI: checkbox({ defaultValue: false }),
+
+      canReadChapters: checkbox({ defaultValue: false }),
 
       author: relationship({
         ref: 'User.role',
