@@ -123,7 +123,8 @@ export const lists: Lists<Session> = {
         },
         hooks: {
           resolveInput({ operation, resolvedData, context }) {
-            return resolvedData.chapter;
+            return resolvedData.events;
+            // return resolvedData.chapter;
           },
         },
       }),

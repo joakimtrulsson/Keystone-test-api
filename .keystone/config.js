@@ -199,7 +199,7 @@ var lists = {
         },
         hooks: {
           resolveInput({ operation, resolvedData, context }) {
-            return resolvedData.chapter;
+            return resolvedData.events;
           }
         }
       }),
