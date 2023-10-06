@@ -25,7 +25,7 @@ function withContext<F extends (req: Request, res: Response, context: Context) =
 // withAuth är en funktion runt base config.
 const { withAuth } = createAuth({
   listKey: 'User',
-  // Ett identitu field på usern.
+  // Ett identity field på usern.
   identityField: 'name',
   secretField: 'password',
   initFirstItem: {

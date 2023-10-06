@@ -11,6 +11,17 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model Chapter {
+  id       String  @id @default(cuid())
+  title    String  @default("")
+  desc     String  @default("")
+  events   Event[] @relation("Chapter_events")
+  author   User?   @relation("Chapter_author", fields: [authorId], references: [id])
+  authorId String? @map("author")
+
+  @@index([authorId])
+}
+
 model Event {
   id                 String    @id @default(cuid())
   title              String    @default("")
@@ -24,17 +35,6 @@ model Event {
   eventStartDate     DateTime?
   author             User?     @relation("Event_author", fields: [authorId], references: [id])
   authorId           String?   @map("author")
-
-  @@index([authorId])
-}
-
-model Chapter {
-  id       String  @id @default(cuid())
-  title    String  @default("")
-  desc     String  @default("")
-  events   Event[] @relation("Chapter_events")
-  author   User?   @relation("Chapter_author", fields: [authorId], references: [id])
-  authorId String? @map("author")
 
   @@index([authorId])
 }
