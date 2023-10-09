@@ -12,6 +12,7 @@ import { getPosts } from './routes/getPosts';
 dotenv.config();
 
 const { ASSET_BASE_URL: baseUrl = 'http://localhost:3000' } = process.env;
+// console.log(process.env);
 
 function withContext<F extends (req: Request, res: Response, context: Context) => void>(
   commonContext: Context,
