@@ -129,6 +129,7 @@ type Event {
   chapter(where: ChapterWhereInput! = {}, orderBy: [ChapterOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ChapterWhereUniqueInput): [Chapter!]
   chapterCount(where: ChapterWhereInput! = {}): Int
   content: Event_content_Document
+  slug: String
   eventImg: ImageFieldOutput
   eventStartDate: DateTime
   author: User
@@ -158,6 +159,7 @@ scalar DateTime @specifiedBy(url: "https://datatracker.ietf.org/doc/html/rfc3339
 
 input EventWhereUniqueInput {
   id: ID
+  slug: String
 }
 
 input EventWhereInput {
@@ -167,6 +169,7 @@ input EventWhereInput {
   id: IDFilter
   title: StringFilter
   chapter: ChapterManyRelationFilter
+  slug: StringFilter
   eventStartDate: DateTimeNullableFilter
   author: UserWhereInput
 }
@@ -191,6 +194,7 @@ input DateTimeNullableFilter {
 input EventOrderByInput {
   id: OrderDirection
   title: OrderDirection
+  slug: OrderDirection
   eventStartDate: OrderDirection
 }
 
@@ -198,6 +202,7 @@ input EventUpdateInput {
   title: String
   chapter: ChapterRelateToManyForUpdateInput
   content: JSON
+  slug: String
   eventImg: ImageFieldInput
   eventStartDate: DateTime
   author: UserRelateToOneForUpdateInput
@@ -226,6 +231,7 @@ input EventCreateInput {
   title: String
   chapter: ChapterRelateToManyForCreateInput
   content: JSON
+  slug: String
   eventImg: ImageFieldInput
   eventStartDate: DateTime
   author: UserRelateToOneForCreateInput
@@ -240,7 +246,9 @@ type Post {
   id: ID!
   title: String
   content: Post_content_Document
-  publishedAt: DateTime
+  slug: String
+  postImage: ImageFieldOutput
+  publishDate: DateTime
   author: User
 }
 
@@ -250,6 +258,7 @@ type Post_content_Document {
 
 input PostWhereUniqueInput {
   id: ID
+  slug: String
 }
 
 input PostWhereInput {
@@ -258,20 +267,24 @@ input PostWhereInput {
   NOT: [PostWhereInput!]
   id: IDFilter
   title: StringFilter
-  publishedAt: DateTimeNullableFilter
+  slug: StringFilter
+  publishDate: DateTimeNullableFilter
   author: UserWhereInput
 }
 
 input PostOrderByInput {
   id: OrderDirection
   title: OrderDirection
-  publishedAt: OrderDirection
+  slug: OrderDirection
+  publishDate: OrderDirection
 }
 
 input PostUpdateInput {
   title: String
   content: JSON
-  publishedAt: DateTime
+  slug: String
+  postImage: ImageFieldInput
+  publishDate: DateTime
   author: UserRelateToOneForUpdateInput
 }
 
@@ -283,7 +296,9 @@ input PostUpdateArgs {
 input PostCreateInput {
   title: String
   content: JSON
-  publishedAt: DateTime
+  slug: String
+  postImage: ImageFieldInput
+  publishDate: DateTime
   author: UserRelateToOneForCreateInput
 }
 

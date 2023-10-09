@@ -1,7 +1,9 @@
 import { list } from '@keystone-6/core';
 import { allOperations } from '@keystone-6/core/access';
-import { relationship, text, timestamp } from '@keystone-6/core/fields';
+import { image, relationship, text, timestamp } from '@keystone-6/core/fields';
 import { document } from '@keystone-6/fields-document';
+
+import { componentBlocks } from '../component-blocks';
 
 import { isSignedIn, permissions, rules } from '../access';
 
@@ -34,8 +36,14 @@ export const postSchema = list({
         [1, 1],
         [1, 1, 1],
       ],
+      ui: {
+        views: './component-blocks',
+      },
+      componentBlocks,
     }),
-    publishedAt: timestamp({
+    slug: text({ isIndexed: 'unique', validation: { isRequired: true } }),
+    postImage: image({ storage: 'postImages' }),
+    publishDate: timestamp({
       defaultValue: { kind: 'now' },
     }),
     author: relationship({

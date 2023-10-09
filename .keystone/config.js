@@ -33,7 +33,7 @@ __export(keystone_exports, {
   default: () => keystone_default
 });
 module.exports = __toCommonJS(keystone_exports);
-var import_core6 = require("@keystone-6/core");
+var import_core7 = require("@keystone-6/core");
 var import_session = require("@keystone-6/core/session");
 var import_auth = require("@keystone-6/auth");
 var import_dotenv = __toESM(require("dotenv"));
@@ -236,6 +236,7 @@ var eventSchema = (0, import_core2.list)({
         [1, 1, 1]
       ]
     }),
+    slug: (0, import_fields2.text)({ isIndexed: "unique", validation: { isRequired: true } }),
     eventImg: (0, import_fields2.image)({ storage: "eventImages" }),
     eventStartDate: (0, import_fields2.timestamp)(),
     author: (0, import_fields2.relationship)({
@@ -345,11 +346,94 @@ var chapterSchema = (0, import_core3.list)({
 });
 
 // schemas/postSchema.ts
-var import_core4 = require("@keystone-6/core");
+var import_core5 = require("@keystone-6/core");
 var import_access7 = require("@keystone-6/core/access");
 var import_fields4 = require("@keystone-6/core/fields");
 var import_fields_document2 = require("@keystone-6/fields-document");
-var postSchema = (0, import_core4.list)({
+
+// component-blocks/carousel.tsx
+var import_core4 = require("@keystone-ui/core");
+var import_component_blocks = require("@keystone-6/fields-document/component-blocks");
+var carousel = (0, import_component_blocks.component)({
+  label: "Carousel",
+  preview: function Preview(props) {
+    return /* @__PURE__ */ (0, import_core4.jsx)(import_component_blocks.NotEditable, null, /* @__PURE__ */ (0, import_core4.jsx)(
+      "div",
+      {
+        css: {
+          overflowY: "scroll",
+          display: "flex",
+          scrollSnapType: "y mandatory"
+        }
+      },
+      props.fields.items.elements.map((item) => {
+        return /* @__PURE__ */ (0, import_core4.jsx)(
+          import_core4.Box,
+          {
+            key: item.key,
+            margin: "xsmall",
+            css: {
+              minWidth: "61.8%",
+              scrollSnapAlign: "center",
+              scrollSnapStop: "always",
+              margin: 4,
+              padding: 8,
+              boxSizing: "border-box",
+              borderRadius: 6,
+              background: "#eff3f6"
+            }
+          },
+          /* @__PURE__ */ (0, import_core4.jsx)(
+            "img",
+            {
+              role: "presentation",
+              src: item.fields.imageSrc.value,
+              css: {
+                objectFit: "cover",
+                objectPosition: "center center",
+                height: 240,
+                width: "100%",
+                borderRadius: 4
+              }
+            }
+          ),
+          /* @__PURE__ */ (0, import_core4.jsx)(
+            "h1",
+            {
+              css: {
+                "&&": {
+                  fontSize: "1.25rem",
+                  lineHeight: "unset",
+                  marginTop: 8
+                }
+              }
+            },
+            item.fields.title.value
+          )
+        );
+      })
+    ));
+  },
+  schema: {
+    items: import_component_blocks.fields.array(
+      import_component_blocks.fields.object({
+        title: import_component_blocks.fields.text({ label: "Title" }),
+        imageSrc: import_component_blocks.fields.url({
+          label: "Image URL",
+          defaultValue: "https://images.unsplash.com/photo-1579546929518-9e396f3cc809"
+        })
+      })
+    )
+  }
+});
+
+// component-blocks/index.tsx
+var componentBlocks = {
+  carousel
+};
+
+// schemas/postSchema.ts
+var postSchema = (0, import_core5.list)({
   access: {
     operation: {
       ...(0, import_access7.allOperations)(isSignedIn),
@@ -377,9 +461,15 @@ var postSchema = (0, import_core4.list)({
       layouts: [
         [1, 1],
         [1, 1, 1]
-      ]
+      ],
+      ui: {
+        views: "./component-blocks"
+      },
+      componentBlocks
     }),
-    publishedAt: (0, import_fields4.timestamp)({
+    slug: (0, import_fields4.text)({ isIndexed: "unique", validation: { isRequired: true } }),
+    postImage: (0, import_fields4.image)({ storage: "postImages" }),
+    publishDate: (0, import_fields4.timestamp)({
       defaultValue: { kind: "now" }
     }),
     author: (0, import_fields4.relationship)({
@@ -405,10 +495,10 @@ var postSchema = (0, import_core4.list)({
 });
 
 // schemas/roleSchema.ts
-var import_core5 = require("@keystone-6/core");
+var import_core6 = require("@keystone-6/core");
 var import_access9 = require("@keystone-6/core/access");
 var import_fields5 = require("@keystone-6/core/fields");
-var roleSchema = (0, import_core5.list)({
+var roleSchema = (0, import_core6.list)({
   access: {
     operation: {
       ...(0, import_access9.allOperations)(permissions.canManageRoles),
@@ -529,12 +619,13 @@ var { withAuth } = (0, import_auth.createAuth)({
     }`
 });
 var keystone_default = withAuth(
-  (0, import_core6.config)({
+  (0, import_core7.config)({
     db: {
       provider: "sqlite",
       url: process.env.DATABASE_URL || "file:./database.db"
     },
     server: {
+      cors: { origin: ["http://localhost:5173"], credentials: true },
       extendExpressApp: (app, commonContext) => {
         app.get("/api/events", withContext(commonContext, getEvents));
         app.get("/api/posts", withContext(commonContext, getPosts));
@@ -549,7 +640,19 @@ var keystone_default = withAuth(
         serverRoute: {
           path: "/images"
         },
-        storagePath: "public/images"
+        storagePath: "public/event-images"
+      },
+      postImages: {
+        kind: "local",
+        type: "image",
+        generateUrl: (path) => `${baseUrl}/post-images${path}`,
+        // Justera sökvägen för postbilder
+        serverRoute: {
+          path: "/post-images"
+          // Justera sökvägen för servern
+        },
+        storagePath: "public/post-images"
+        // Justera lagringsmappen för postbilder
       }
     },
     ui: {

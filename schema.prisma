@@ -27,6 +27,7 @@ model Event {
   title              String    @default("")
   chapter            Chapter[] @relation("Chapter_events")
   content            String    @default("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]")
+  slug               String    @unique @default("")
   eventImg_filesize  Int?
   eventImg_extension String?
   eventImg_width     Int?
@@ -40,12 +41,18 @@ model Event {
 }
 
 model Post {
-  id          String    @id @default(cuid())
-  title       String    @default("")
-  content     String    @default("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]")
-  publishedAt DateTime? @default(now())
-  author      User?     @relation("Post_author", fields: [authorId], references: [id])
-  authorId    String?   @map("author")
+  id                  String    @id @default(cuid())
+  title               String    @default("")
+  content             String    @default("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]")
+  slug                String    @unique @default("")
+  postImage_filesize  Int?
+  postImage_extension String?
+  postImage_width     Int?
+  postImage_height    Int?
+  postImage_id        String?
+  publishDate         DateTime? @default(now())
+  author              User?     @relation("Post_author", fields: [authorId], references: [id])
+  authorId            String?   @map("author")
 
   @@index([authorId])
 }

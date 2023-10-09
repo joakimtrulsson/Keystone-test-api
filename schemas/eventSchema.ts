@@ -39,6 +39,7 @@ export const eventSchema = list({
         [1, 1, 1],
       ],
     }),
+    slug: text({ isIndexed: 'unique', validation: { isRequired: true } }),
     eventImg: image({ storage: 'eventImages' }),
     eventStartDate: timestamp(),
     author: relationship({

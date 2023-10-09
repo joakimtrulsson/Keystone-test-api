@@ -71,6 +71,7 @@ export default withAuth(
     },
 
     server: {
+      cors: { origin: ['http://localhost:5173'], credentials: true },
       extendExpressApp: (app, commonContext) => {
         app.get('/api/events', withContext(commonContext, getEvents));
         app.get('/api/posts', withContext(commonContext, getPosts));
@@ -85,7 +86,16 @@ export default withAuth(
         serverRoute: {
           path: '/images',
         },
-        storagePath: 'public/images',
+        storagePath: 'public/event-images',
+      },
+      postImages: {
+        kind: 'local',
+        type: 'image',
+        generateUrl: (path) => `${baseUrl}/post-images${path}`, // Justera sökvägen för postbilder
+        serverRoute: {
+          path: '/post-images', // Justera sökvägen för servern
+        },
+        storagePath: 'public/post-images', // Justera lagringsmappen för postbilder
       },
     },
     ui: {
